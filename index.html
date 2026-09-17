@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RDScout - Connected (Sidebar & Data)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        // Carrega o CSS Tailwind customizado externo como <style type="text/tailwindcss">
+        // para preservar as regras @apply do arquivo original.
+        fetch("style.css")
+            .then(response => response.text())
+            .then(css => {
+                const style = document.createElement("style");
+                style.type = "text/tailwindcss";
+                style.textContent = css;
+                document.head.appendChild(style);
+            })
+            .catch(error => console.error("Erro ao carregar style.css:", error));
+    </script>
+</head>
+<body>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="toast-notification">
+        <i id="toast-icon" class="fas fa-check-circle text-green-500 text-xl"></i>
+        <div>
+            <h4 id="toast-title" class="font-bold text-sm">Sucesso!</h4>
+            <p id="toast-msg" class="text-xs text-slate-400">Dados enviados para o Google Sheets.</p>
+        </div>
+    </div>
+
+    <!-- SIDEBAR OVERLAY -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/80 z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+    <!-- SIDEBAR DRAWER -->
+    <div id="app-sidebar" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-slate-950 border-r border-slate-800 z-[70] transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center mb-8">
+                 <h2 class="text-xl font-black text-white tracking-tight leading-none">RD<span class="text-indigo-500">SCOUT</span><br><span class="text-[10px] font-normal text-slate-500 tracking-widest uppercase">Configurações</span></h2>
+                 <button onclick="toggleSidebar()" class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <!-- Link para Página de Dados -->
+            <button onclick="navTo('page-data'); toggleSidebar();" class="w-full mb-8 p-4 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold flex items-center gap-3 hover:bg-slate-800 transition">
+                <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center"><i class="fas fa-database"></i></div>
+                <div class="text-left">
+                    <div class="text-xs text-slate-400 uppercase">Gerenciar</div>
+                    <div>Dados Salvos</div>
+                </div>
+            </button>
+            
+            <!-- CAMPO NOME DO SCOUTER -->
+            <div class="mb-8">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Nome do Scouter</label>
+                <div class="relative">
+                    <i class="fas fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
+                    <input type="text" id="scouterNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm font-bold text-white outline-none focus:border-indigo-500 transition-all placeholder-slate-700" placeholder="Seu nome..." onchange="saveScouterName(this.value)">
+                </div>
+            </div>
+
+            <hr class="border-slate-800/50 mb-8">
+
+            <!-- TORNEIOS DO BRASIL (FIXOS) -->
+            <div class="space-y-4 mb-8">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Torneios do Brasil (2026)</label>
+                
+                <!-- Regional Brazil - Festival SESI de Educação -->
+                <button onclick="selectEvent('2026brba', 'Regional Brazil - Festival SESI de Educação')" class="w-full p-4 rounded-xl bg-slate-900 border border-slate-700 hover:border-green-500 hover:bg-green-900/20 transition group text-left relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition"><i class="fas fa-flag text-4xl text-green-500"></i></div>
+                    <div class="flex justify-between items-center mb-1 relative z-10">
+                        <span class="text-sm font-bold text-white group-hover:text-green-400 leading-tight">Festival SESI de Educação</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono relative z-10">Chave: 2026brba</div>
+                </button>
+
+                <!-- Regional Brazil - SESI Vila Leopoldina -->
+                <button onclick="selectEvent('2026brsp', 'Regional Brazil - SESI Vila Leopoldina')" class="w-full p-4 rounded-xl bg-slate-900 border border-slate-700 hover:border-blue-500 hover:bg-blue-900/20 transition group text-left relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition"><i class="fas fa-building text-4xl text-blue-500"></i></div>
+                    <div class="flex justify-between items-center mb-1 relative z-10">
+                        <span class="text-sm font-bold text-white group-hover:text-blue-400 leading-tight">SESI Vila Leopoldina</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500 font-mono relative z-10">Chave: 2026brsp</div>
+                </button>
+            </div>
+
+            <!-- Card de Evento Selecionado (Informativo) -->
+            <div id="selectedEventContainer" class="hidden bg-indigo-900/10 border border-indigo-500/30 rounded-xl p-3 flex items-center justify-between transition-all mb-8">
+                <div class="overflow-hidden mr-2">
+                    <div class="text-[9px] text-indigo-400 font-bold uppercase tracking-wider mb-0.5">Evento Atual</div>
+                    <div id="selectedEventName" class="font-bold text-white text-xs truncate">---</div>
+                    <div id="selectedEventKey" class="font-mono text-[9px] text-slate-500">---</div>
+                    <input type="hidden" id="eventKeyInput">
+                </div>
+                <button onclick="clearSelection()" class="w-6 h-6 rounded-full bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 flex items-center justify-center transition shrink-0 border border-slate-700"><i class="fas fa-times text-xs"></i></button>
+            </div>
+
+            <!-- ÁREA DE CONFIGURAÇÃO TÉCNICA -->
+            <div class="pt-4 border-t border-slate-800/50">
+                <button onclick="toggleAdvanced()" class="w-full flex items-center justify-between text-xs font-bold text-slate-500 hover:text-slate-300 transition p-2 mb-2"><span>Configurações Avançadas</span><i class="fas fa-chevron-down transform transition" id="advArrow"></i></button>
+                <div id="advancedSection" class="hidden space-y-4 p-2">
+                    <div>
+                        <label class="text-[9px] text-slate-500 uppercase font-bold block mb-1">TBA API Key</label>
+                        <input type="password" id="apiKeyInput" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-400 outline-none font-mono focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-green-600 uppercase font-bold block mb-1">Google Apps Script URL</label>
+                        <input type="text" id="sheetsUrlInput" class="w-full bg-slate-900 border border-green-900/50 rounded p-2 text-xs text-green-400 outline-none font-mono focus:border-green-500" placeholder="https://script.google.com/..." onchange="saveSheetsUrl(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-slate-800 bg-slate-900/50 backdrop-blur">
+             <button onclick="validateAndFetchSchedule()" id="mainActionBtn" class="w-full bg-gradient-to-r from-slate-700 to-slate-800 text-slate-400 font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 transition-all transform text-sm cursor-not-allowed border border-slate-700" disabled><span>ATUALIZAR DADOS</span><i class="fas fa-cloud-download-alt"></i></button>
+        </div>
+    </div>
+
+    <div id="app-frame">
+
+        <!-- ========================================== -->
+        <!-- TELA 2: SELEÇÃO DE PARTIDA (HOME) -->
+        <!-- ========================================== -->
+        <div id="page-match-selector" class="page-container active-page p-4 md:p-8">
+            <div class="scout-max-width mx-auto w-full h-full flex flex-col">
+                <header class="flex items-center justify-between mb-6 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-lg shrink-0"><i class="fas fa-robot text-sm"></i></div>
+                        <div class="truncate">
+                            <h1 class="font-bold text-white text-sm md:text-base truncate" id="ms-eventNameDisplay">Selecione um Evento</h1>
+                            <p class="text-[10px] md:text-xs text-indigo-400 font-bold uppercase tracking-wider" id="ms-eventKeyDisplay">---</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <!-- BOTÃO DADOS -->
+                        <button onclick="navTo('page-data')" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center border border-slate-700 shadow-md"><i class="fas fa-database"></i></button>
+                        <!-- BOTÃO CONFIG -->
+                        <button onclick="toggleSidebar()" class="w-10 h-10 rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center border border-slate-700 shadow-md"><i class="fas fa-cog"></i></button>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                    <div class="space-y-4 flex flex-col">
+                        <div class="bg-slate-900/50 p-5 rounded-2xl border border-slate-800">
+                            <div class="grid grid-cols-4 gap-2 mb-6">
+                                <button onclick="setMatchType('practice')" class="match-type-card group" id="tab-practice"><i class="fas fa-tools"></i><span>TREINO</span></button>
+                                <button onclick="setMatchType('qm')" class="match-type-card active" id="tab-qm"><i class="fas fa-list-ol"></i><span>QUALIF</span></button>
+                                <button onclick="setMatchType('playoff')" class="match-type-card" id="tab-playoff"><i class="fas fa-trophy"></i><span>PLAYOFF</span></button>
+                                <button onclick="setMatchType('final')" class="match-type-card" id="tab-final"><i class="fas fa-flag-checkered"></i><span>FINAL</span></button>
+                            </div>
+                            <div class="flex items-center justify-between gap-4">
+                                <button onclick="adjustMatch(-1)" class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700 transition flex items-center justify-center shadow-lg active:scale-95"><i class="fas fa-minus"></i></button>
+                                <div class="flex-1 text-center">
+                                    <span class="text-[10px] text-slate-500 uppercase font-bold tracking-widest block mb-1">PARTIDA Nº</span>
+                                    <input type="number" id="matchNumInput" class="w-full bg-transparent text-center font-mono text-4xl font-bold text-white outline-none placeholder-slate-700" value="1" oninput="updateTeamDisplay()">
+                                </div>
+                                <button onclick="adjustMatch(1)" class="w-12 h-12 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition flex items-center justify-center shadow-lg shadow-indigo-900/30 active:scale-95"><i class="fas fa-plus"></i></button>
+                            </div>
+                        </div>
+                        <div class="team-card rounded-2xl p-6 border border-slate-700 text-center relative group flex-1 flex flex-col justify-center">
+                            <label class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Equipe a Scoutar</label>
+                            <input type="number" id="teamInput" class="w-full bg-transparent text-6xl md:text-7xl font-black text-center text-white outline-none border-none placeholder-slate-700 font-mono tracking-tighter transition-all" placeholder="---" readonly oninput="updateTeamDisplay()">
+                            <p id="teamStatusMsg" class="text-xs mt-3 text-slate-500 font-bold h-4">Aguardando...</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col h-full">
+                        <div class="flex justify-between items-end mb-3 px-1"><span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Driver Station</span></div>
+                        <div class="grid grid-cols-2 gap-3 h-full">
+                            <div class="space-y-3 flex flex-col h-full">
+                                <button onclick="setPosition('Red1')" id="btn-Red1" class="station-btn btn-red flex-1"><span class="text-xs uppercase font-bold opacity-70">Red 1</span><i class="fas fa-gamepad text-xl mt-1"></i></button>
+                                <button onclick="setPosition('Red2')" id="btn-Red2" class="station-btn btn-red flex-1"><span class="text-xs uppercase font-bold opacity-70">Red 2</span><i class="fas fa-gamepad text-xl mt-1"></i></button>
+                                <button onclick="setPosition('Red3')" id="btn-Red3" class="station-btn btn-red flex-1"><span class="text-xs uppercase font-bold opacity-70">Red 3</span><i class="fas fa-gamepad text-xl mt-1"></i></button>
+                            </div>
+                            <div class="space-y-3 flex flex-col h-full">
+                                <button onclick="setPosition('Blue1')" id="btn-Blue1" class="station-btn btn-blue flex-1"><span class="text-xs uppercase font-bold opacity-70">Blue 1</span><i class="fas fa-gamepad text-xl mt-1"></i></button>
+                                <button onclick="setPosition('Blue2')" id="btn-Blue2" class="station-btn btn-blue flex-1"><span class="text-xs uppercase font-bold opacity-70">Blue 2</span><i class="fas fa-gamepad text-xl mt-1"></i></button>
+                                <button onclick="setPosition('Blue3')" id="btn-Blue3" class="station-btn btn-blue flex-1"><span class="text-xs uppercase font-bold opacity-70">Blue 3</span><i class="fas fa-gamepad text-xl mt-1"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 mt-auto">
+                    <button onclick="startScouting()" id="startBtn" class="w-full font-bold py-5 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 start-btn-disabled text-lg" disabled><i class="fas fa-lock"></i><span class="tracking-wide">PREENCHA OS DADOS</span></button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ========================================== -->
+        <!-- TELA 4: DADOS SALVOS (NOVA) -->
+        <!-- ========================================== -->
+        <div id="page-data" class="page-container hidden-page p-4 md:p-8 flex flex-col">
+            <header class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <button onclick="navTo('page-match-selector')" class="w-10 h-10 rounded-lg bg-slate-800 text-gray-400 flex items-center justify-center cursor-pointer hover:bg-slate-700 hover:text-white transition"><i class="fas fa-arrow-left text-sm"></i></button>
+                    <h1 class="text-xl font-bold text-white">Dados Salvos</h1>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="clearAllData()" class="w-10 h-10 rounded-full bg-red-900/30 text-red-400 border border-red-900/50 hover:bg-red-900/50 transition flex items-center justify-center"><i class="fas fa-trash-alt text-sm"></i></button>
+                </div>
+            </header>
+            
+            <div id="data-list-container" class="flex-1 overflow-y-auto custom-scrollbar mb-4 space-y-2">
+                <!-- Lista de dados inserida via JS -->
+            </div>
+            
+            <div class="mt-auto">
+                <button onclick="syncAllMatches()" id="btn-sync" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all">
+                    <span>SINCRONIZAR PENDENTES</span>
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TELA 3: SCOUTING -->
+        <!-- ========================================== -->
+        <div id="page-match-scouting" class="page-container hidden-page p-0 flex flex-col">
+            
+            <!-- Header Fixo -->
+            <header class="bg-slate-900/90 backdrop-blur border-b border-slate-700 p-2 md:p-3 sticky top-0 z-50 flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-3">
+                    <button onclick="confirmExit()" class="w-8 h-8 rounded-lg bg-slate-800 text-gray-400 flex items-center justify-center cursor-pointer hover:bg-slate-700 hover:text-white transition"><i class="fas fa-arrow-left text-sm"></i></button>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="scout-match-type" class="text-[10px] font-bold uppercase bg-slate-800 px-2 py-0.5 rounded text-gray-400 border border-slate-700">QM</span>
+                            <span id="scout-match-num" class="text-lg md:text-xl font-bold text-white">#1</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Nav Tabs -->
+                <nav class="scout-nav justify-center md:justify-start flex-1 ml-4 overflow-hidden">
+                    <div class="flex space-x-1 overflow-x-auto h-full items-center no-scrollbar">
+                        <button onclick="changePhase('auto')" class="phase-btn active" id="nav-auto">AUTO</button>
+                        <button onclick="changePhase('transition')" class="phase-btn" id="nav-transition">TRANS</button>
+                        <button onclick="changePhase('shift1')" class="phase-btn" id="nav-shift1">S1</button>
+                        <button onclick="changePhase('shift2')" class="phase-btn" id="nav-shift2">S2</button>
+                        <button onclick="changePhase('shift3')" class="phase-btn" id="nav-shift3">S3</button>
+                        <button onclick="changePhase('shift4')" class="phase-btn" id="nav-shift4">S4</button>
+                        <button onclick="changePhase('endgame')" class="phase-btn" id="nav-endgame">END</button>
+                        <button onclick="changePhase('offmatch')" class="phase-btn" id="nav-offmatch">OFF</button>
+                    </div>
+                </nav>
+                <div class="text-right flex items-center gap-3 pl-2">
+                    <span id="scout-team-num" class="text-xl md:text-2xl font-black text-yellow-400 font-mono block leading-none">0000</span>
+                    <span id="scout-alliance" class="text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded-full bg-gray-800 text-gray-400">---</span>
+                </div>
+            </header>
+
+            <!-- Conteúdo Principal -->
+            <!-- pb-64 adicionado para garantir espaço extra no final da rolagem -->
+            <div id="scout-content-area" class="flex-1 overflow-y-auto p-3 md:p-6 pb-64 scroll-smooth bg-[#0b0f19]">
+                <div class="scout-max-width">
+                    
+                    <!-- === FASE 1: AUTO === -->
+                    <div id="phase-auto" class="phase-content h-full flex flex-col gap-4">
+                        
+                        <!-- 1. MAPA (SEMPRE VISÍVEL) -->
+                        <div>
+                            <h3 class="text-slate-400 font-bold uppercase text-xs mb-2 tracking-widest pl-1">Posição Inicial</h3>
+                            <div class="field-map-container mb-0">
+                                <img src="https://placehold.co/800x300/1e293b/475569?text=MAPA+DO+CAMPO" alt="Map" class="absolute inset-0 w-full h-full object-cover opacity-60">
+                                <button onclick="setStartPos('Trench Left')" id="pos-Trench Left" class="start-pos-btn" style="left: 15%; bottom: 15%;"><i class="fas fa-map-marker-alt"></i></button>
+                                <button onclick="setStartPos('Bump Left')" id="pos-Bump Left" class="start-pos-btn" style="left: 32%; bottom: 15%;"><i class="fas fa-map-marker-alt"></i></button>
+                                <button onclick="setStartPos('Hub')" id="pos-Hub" class="start-pos-btn" style="left: 50%; bottom: 15%;"><i class="fas fa-bullseye"></i></button>
+                                <button onclick="setStartPos('Bump Right')" id="pos-Bump Right" class="start-pos-btn" style="left: 68%; bottom: 15%;"><i class="fas fa-map-marker-alt"></i></button>
+                                <button onclick="setStartPos('Trench Right')" id="pos-Trench Right" class="start-pos-btn" style="left: 85%; bottom: 15%;"><i class="fas fa-map-marker-alt"></i></button>
+                                <div id="selected-pos-display" class="absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-[10px] text-green-400 font-bold backdrop-blur"></div>
+                            </div>
+                        </div>
+
+                        <!-- 2. BOTÃO TOGGLE -->
+                        <button onclick="toggleAutoDetails()" id="btn-toggle-auto" class="w-full py-3 rounded-xl border-2 border-slate-600 bg-slate-800 text-slate-400 font-bold uppercase tracking-widest hover:bg-slate-700 hover:text-white transition shadow-lg flex items-center justify-center gap-2">
+                            <span>Fez Autônomo?</span>
+                            <i class="fas fa-chevron-down transition-transform duration-300" id="icon-toggle-auto"></i>
+                        </button>
+
+                        <!-- 3. DETALHES (ESCONDIDOS) - LAYOUT AJUSTADO CONFORME IMAGENS -->
+                        <div id="auto-details-container" class="hidden flex-col gap-4 pt-4 transition-all duration-300">
+                            
+                            <div class="flex flex-col md:grid md:grid-cols-2 gap-4">
+                                
+                                <!-- COLUNA ESQUERDA: MOBILIDADE, COLETA E ESCALADA -->
+                                <div class="flex flex-col gap-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <!-- Mobilidade Box -->
+                                        <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
+                                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">MOBILIDADE</h3>
+                                            <div class="space-y-3">
+                                                <label class="flex items-center gap-3 cursor-pointer group">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="check-trench" class="peer sr-only" onchange="updateCheck('trench')">
+                                                        <div class="w-5 h-5 bg-white border-2 border-slate-600 rounded peer-checked:bg-white peer-checked:border-white transition-all"></div>
+                                                        <i class="fas fa-check absolute left-1 top-1 text-black text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                                    </div>
+                                                    <span class="text-sm font-bold text-white group-hover:text-slate-200 transition">Trench</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 cursor-pointer group">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="check-bump" class="peer sr-only" onchange="updateCheck('bump')">
+                                                        <div class="w-5 h-5 bg-white border-2 border-slate-600 rounded peer-checked:bg-white peer-checked:border-white transition-all"></div>
+                                                        <i class="fas fa-check absolute left-1 top-1 text-black text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                                    </div>
+                                                    <span class="text-sm font-bold text-white group-hover:text-slate-200 transition">Bump</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Coleta Box -->
+                                        <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
+                                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">COLETA</h3>
+                                            <div class="space-y-3">
+                                                <label class="flex items-center gap-3 cursor-pointer group">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="check-ground" class="peer sr-only" onchange="updateCheck('ground')">
+                                                        <div class="w-5 h-5 bg-white border-2 border-slate-600 rounded peer-checked:bg-white peer-checked:border-white transition-all"></div>
+                                                        <i class="fas fa-check absolute left-1 top-1 text-black text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                                    </div>
+                                                    <span class="text-sm font-bold text-white group-hover:text-slate-200 transition">Chão</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 cursor-pointer group">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="check-depot" class="peer sr-only" onchange="updateCheck('depot')">
+                                                        <div class="w-5 h-5 bg-white border-2 border-slate-600 rounded peer-checked:bg-white peer-checked:border-white transition-all"></div>
+                                                        <i class="fas fa-check absolute left-1 top-1 text-black text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                                    </div>
+                                                    <span class="text-sm font-bold text-white group-hover:text-slate-200 transition">Depot</span>
+                                                </label>
+                                                <label class="flex items-center gap-3 cursor-pointer group">
+                                                    <div class="relative flex items-center">
+                                                        <input type="checkbox" id="check-outpost" class="peer sr-only" onchange="updateCheck('outpost')">
+                                                        <div class="w-5 h-5 bg-white border-2 border-slate-600 rounded peer-checked:bg-white peer-checked:border-white transition-all"></div>
+                                                        <i class="fas fa-check absolute left-1 top-1 text-black text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                                                    </div>
+                                                    <span class="text-sm font-bold text-white group-hover:text-slate-200 transition">Outpost</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Escalada Box -->
+                                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
+                                        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">ESCALADA L1 (AUTO)</h3>
+                                        <div class="flex gap-2">
+                                            <button onclick="setAutoClimb('none')" id="btn-climb-none" class="flex-1 py-3 rounded-lg border border-slate-600 bg-slate-800 text-white text-xs font-bold transition hover:bg-slate-700">Não</button>
+                                            <button onclick="setAutoClimb('failed')" id="btn-climb-failed" class="flex-1 py-3 rounded-lg border border-slate-600 bg-slate-800 text-white text-xs font-bold transition hover:bg-slate-700">Falhou</button>
+                                            <button onclick="setAutoClimb('success')" id="btn-climb-success" class="flex-1 py-3 rounded-lg border border-slate-600 bg-slate-800 text-white text-xs font-bold transition hover:bg-slate-700">Sucesso</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- COLUNA DIREITA: COUNTERS, HP -->
+                                <div class="flex flex-col gap-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <!-- Pontuadas Box -->
+                                        <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col">
+                                            <h3 class="text-xs font-bold text-white mb-2 text-center">Pontuadas</h3>
+                                            <div class="flex-1 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center mb-3">
+                                                <span id="display-auto-scored" class="text-4xl font-bold text-green-500">0</span>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-1 mb-1">
+                                                <button onclick="updateAutoFuel('scored', 1)" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded text-xs transition">+1</button>
+                                                <button onclick="updateAutoFuel('scored', 5)" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded text-xs transition">+5</button>
+                                                <button onclick="updateAutoFuel('scored', 10)" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded text-xs transition">+10</button>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-1">
+                                                <button onclick="updateAutoFuel('scored', -1)" class="bg-red-900/60 hover:bg-red-900/80 text-red-300 font-bold py-2 rounded text-xs border border-red-900/50 transition">-1</button>
+                                                <button onclick="updateAutoFuel('scored', -5)" class="bg-red-900/60 hover:bg-red-900/80 text-red-300 font-bold py-2 rounded text-xs border border-red-900/50 transition">-5</button>
+                                                <button onclick="updateAutoFuel('scored', -10)" class="bg-red-900/60 hover:bg-red-900/80 text-red-300 font-bold py-2 rounded text-xs border border-red-900/50 transition">-10</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Passes Neutra Box -->
+                                        <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col">
+                                            <h3 class="text-xs font-bold text-white mb-2 text-center">Passes Neutra</h3>
+                                            <div class="flex-1 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-center mb-3">
+                                                <span id="display-auto-fed" class="text-4xl font-bold text-blue-500">0</span>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-1 mb-1">
+                                                <button onclick="updateAutoFuel('fed', 1)" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-xs transition">+1</button>
+                                                <button onclick="updateAutoFuel('fed', 5)" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-xs transition">+5</button>
+                                                <button onclick="updateAutoFuel('fed', 10)" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded text-xs transition">+10</button>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-1">
+                                                <button onclick="updateAutoFuel('fed', -1)" class="bg-red-900/60 hover:bg-red-900/80 text-red-300 font-bold py-2 rounded text-xs border border-red-900/50 transition">-1</button>
+                                                <button onclick="updateAutoFuel('fed', -5)" class="bg-red-900/60 hover:bg-red-900/80 text-red-300 font-bold py-2 rounded text-xs border border-red-900/50 transition">-5</button>
+                                                <button onclick="updateAutoFuel('fed', -10)" class="bg-red-900/60 hover:bg-red-900/80 text-red-300 font-bold py-2 rounded text-xs border border-red-900/50 transition">-10</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- HP Box -->
+                                    <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+                                        <label class="text-xs font-bold text-white uppercase tracking-wider">ALIMENTOU HP?</label>
+                                        <div class="flex items-center gap-3 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                                            <button onclick="updateAutoHP(-1)" class="w-10 h-10 rounded bg-slate-800 text-slate-400 hover:text-white font-bold transition active:scale-95">-1</button>
+                                            <div class="w-8 text-center font-mono font-bold text-cyan-400 text-xl"><span id="display-auto-hp">0</span></div>
+                                            <button onclick="updateAutoHP(1)" class="w-10 h-10 rounded bg-cyan-600 text-white hover:bg-cyan-500 font-bold transition active:scale-95 shadow-lg shadow-cyan-500/20">+1</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- === FASE 2: TRANSITION === -->
+                    <div id="phase-transition" class="phase-content hidden h-full flex flex-col gap-6">
+                        
+                        <!-- FUNÇÕES (ROLES) - SEMPRE VISÍVEIS -->
+                        <div>
+                            <h3 class="section-title title-pink"><i class="fas fa-user-tag mr-2"></i>Funções na Transição</h3>
+                            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700 grid grid-cols-2 md:grid-cols-5 gap-2">
+                                <button onclick="toggleRole('transition', 'scorer')" id="btn-role-transition-scorer" class="role-btn">Pontuador</button>
+                                <button onclick="toggleRole('transition', 'feeder')" id="btn-role-transition-feeder" class="role-btn">Feeder</button>
+                                <button onclick="toggleRole('transition', 'defense')" id="btn-role-transition-defense" class="role-btn">Defensor</button>
+                                <button onclick="toggleRole('transition', 'stealer')" id="btn-role-transition-stealer" class="role-btn">Stealer</button>
+                                <button onclick="toggleRole('transition', 'cycler')" id="btn-role-transition-cycler" class="role-btn">Ciclador</button>
+                            </div>
+                        </div>
+
+                        <!-- TAB NAVIGATION -->
+                        <div class="flex rounded-lg bg-slate-900 p-1 mb-2">
+                            <button onclick="openSubTab('trans', 'score')" id="btn-trans-tab-score" class="sub-tab-btn active">Pontuação</button>
+                            <button onclick="openSubTab('trans', 'intake')" id="btn-trans-tab-intake" class="sub-tab-btn">Coleta</button>
+                            <button onclick="openSubTab('trans', 'feed')" id="btn-trans-tab-feed" class="sub-tab-btn">Feed</button>
+                        </div>
+
+                        <!-- TAB: PONTUAÇÃO -->
+                        <div id="trans-content-score" class="flex flex-col gap-6">
+                            <div>
+                                <h3 class="section-title title-green"><i class="fas fa-basketball-ball mr-2"></i>Pontuação (Fuels Scored)</h3>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-center">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs text-slate-400 font-bold uppercase">Total Pontuado</span>
+                                        <div class="text-4xl font-mono font-bold text-green-400"><span id="display-trans-scored">0</span></div>
+                                    </div>
+                                    <div class="grid grid-cols-6 gap-2">
+                                        <button onclick="updateTransitionScore(1)" class="counter-btn-pos bg-green-600 hover:bg-green-500">+1</button>
+                                        <button onclick="updateTransitionScore(5)" class="counter-btn-pos bg-green-700 hover:bg-green-600">+5</button>
+                                        <button onclick="updateTransitionScore(10)" class="counter-btn-pos bg-green-800 hover:bg-green-700">+10</button>
+                                        <button onclick="updateTransitionScore(-1)" class="counter-btn-neg">-1</button>
+                                        <button onclick="updateTransitionScore(-5)" class="counter-btn-neg">-5</button>
+                                        <button onclick="updateTransitionScore(-10)" class="counter-btn-neg">-10</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: COLETA -->
+                        <div id="trans-content-intake" class="hidden flex-col gap-6">
+                            <div>
+                                <h3 class="section-title title-orange"><i class="fas fa-hand-holding mr-2"></i>Coleta (Intake)</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Nossa Zona</span><div class="mini-counter-display text-orange-400"><span id="trans-intake-our">0</span></div></div>
+                                        <div class="flex gap-1"><button onclick="updateTransIntake('our', -1)" class="mini-btn-neg"><i class="fas fa-minus"></i></button><button onclick="updateTransIntake('our', 1)" class="mini-btn-pos bg-orange-700">+1</button></div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Zona Neutra</span><div class="mini-counter-display text-orange-400"><span id="trans-intake-neutral">0</span></div></div>
+                                        <div class="flex gap-1"><button onclick="updateTransIntake('neutral', -1)" class="mini-btn-neg"><i class="fas fa-minus"></i></button><button onclick="updateTransIntake('neutral', 1)" class="mini-btn-pos bg-orange-700">+1</button></div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Zona Deles</span><div class="mini-counter-display text-orange-400"><span id="trans-intake-opponent">0</span></div></div>
+                                        <div class="flex gap-1"><button onclick="updateTransIntake('opponent', -1)" class="mini-btn-neg"><i class="fas fa-minus"></i></button><button onclick="updateTransIntake('opponent', 1)" class="mini-btn-pos bg-orange-700">+1</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: FEED -->
+                        <div id="trans-content-feed" class="hidden flex-col gap-6">
+                            <div class="mb-8"> <!-- Spacing from HP section -->
+                                <h3 class="section-title title-blue"><i class="fas fa-share mr-2"></i>Feed (Expandido)</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
+                                            <span class="text-xs font-bold text-blue-300 uppercase">De <span class="text-white">Nossa Zona</span></span>
+                                            <div class="text-xl font-mono font-bold text-blue-400"><span id="trans-feed-our">0</span></div>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <button onclick="updateTransFeed('our', 1)" class="mini-btn-pos bg-blue-600">+1</button>
+                                            <button onclick="updateTransFeed('our', 5)" class="mini-btn-pos bg-blue-700">+5</button>
+                                            <button onclick="updateTransFeed('our', 10)" class="mini-btn-pos bg-blue-800">+10</button>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="updateTransFeed('our', -1)" class="mini-btn-neg">-1</button>
+                                            <button onclick="updateTransFeed('our', -5)" class="mini-btn-neg">-5</button>
+                                            <button onclick="updateTransFeed('our', -10)" class="mini-btn-neg">-10</button>
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
+                                            <span class="text-xs font-bold text-blue-300 uppercase">De <span class="text-white">Zona Neutra</span></span>
+                                            <div class="text-xl font-mono font-bold text-blue-400"><span id="trans-feed-neutral">0</span></div>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <button onclick="updateTransFeed('neutral', 1)" class="mini-btn-pos bg-blue-600">+1</button>
+                                            <button onclick="updateTransFeed('neutral', 5)" class="mini-btn-pos bg-blue-700">+5</button>
+                                            <button onclick="updateTransFeed('neutral', 10)" class="mini-btn-pos bg-blue-800">+10</button>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="updateTransFeed('neutral', -1)" class="mini-btn-neg">-1</button>
+                                            <button onclick="updateTransFeed('neutral', -5)" class="mini-btn-neg">-5</button>
+                                            <button onclick="updateTransFeed('neutral', -10)" class="mini-btn-neg">-10</button>
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex items-center justify-between mb-2 border-b border-slate-700 pb-2">
+                                            <span class="text-xs font-bold text-blue-300 uppercase">De <span class="text-white">Zona Deles</span></span>
+                                            <div class="text-xl font-mono font-bold text-blue-400"><span id="trans-feed-opponent">0</span></div>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <button onclick="updateTransFeed('opponent', 1)" class="mini-btn-pos bg-blue-600">+1</button>
+                                            <button onclick="updateTransFeed('opponent', 5)" class="mini-btn-pos bg-blue-700">+5</button>
+                                            <button onclick="updateTransFeed('opponent', 10)" class="mini-btn-pos bg-blue-800">+10</button>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="updateTransFeed('opponent', -1)" class="mini-btn-neg">-1</button>
+                                            <button onclick="updateTransFeed('opponent', -5)" class="mini-btn-neg">-5</button>
+                                            <button onclick="updateTransFeed('opponent', -10)" class="mini-btn-neg">-10</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="section-title title-cyan"><i class="fas fa-user-friends mr-2"></i>Human Player</h3>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                                    <label class="text-xs font-bold text-white uppercase tracking-wider">Alimentou HP?</label>
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="updateTransitionHP(-1)" class="hp-btn bg-slate-700 text-slate-300 hover:text-white">-1</button>
+                                        <div class="text-2xl font-mono font-bold text-cyan-400 w-8 text-center"><span id="display-trans-hp">0</span></div>
+                                        <button onclick="updateTransitionHP(1)" class="hp-btn bg-cyan-600 text-white hover:bg-cyan-500 shadow-lg shadow-cyan-900/30">+1</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- === FASE 3: SHIFTS === -->
+                    <div id="phase-shift1" class="phase-content hidden h-full flex flex-col"></div>
+                    <div id="phase-shift2" class="phase-content hidden h-full flex flex-col"></div>
+                    <div id="phase-shift3" class="phase-content hidden h-full flex flex-col"></div>
+                    <div id="phase-shift4" class="phase-content hidden h-full flex flex-col"></div>
+
+                    <!-- === ENDGAME === -->
+                    <div id="phase-endgame" class="phase-content hidden h-full flex flex-col gap-8">
+                        <div class="bg-indigo-900/10 border border-indigo-500/30 rounded-2xl p-4 md:p-6 shadow-2xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-mountain text-8xl text-indigo-400"></i></div>
+                            <h3 class="section-title title-yellow mb-6 text-base"><i class="fas fa-level-up-alt mr-2"></i>Escalada (Climber)</h3>
+                            <div class="flex flex-col gap-3">
+                                <button onclick="setEndgameClimb('none', 'none')" id="climb-btn-none" class="w-full py-4 rounded-xl border-2 border-slate-600 bg-slate-800 text-slate-400 font-bold uppercase tracking-widest hover:bg-slate-700 hover:text-white transition shadow-lg mb-2">
+                                    Não Tentou / Reset
+                                </button>
+                                <div class="climb-level-row">
+                                    <div class="climb-lvl-label">L1</div>
+                                    <button onclick="setEndgameClimb('L1', 'failed')" id="climb-L1-failed" class="climb-btn-opt bg-red-900/20 border-red-900/50 text-red-500 hover:bg-red-900/40 mr-2">Falhou</button>
+                                    <button onclick="setEndgameClimb('L1', 'success')" id="climb-L1-success" class="climb-btn-opt bg-green-900/20 border-green-900/50 text-green-500 hover:bg-green-900/40">Sucesso</button>
+                                </div>
+                                <div class="climb-level-row">
+                                    <div class="climb-lvl-label">L2</div>
+                                    <button onclick="setEndgameClimb('L2', 'failed')" id="climb-L2-failed" class="climb-btn-opt bg-red-900/20 border-red-900/50 text-red-500 hover:bg-red-900/40 mr-2">Falhou</button>
+                                    <button onclick="setEndgameClimb('L2', 'success')" id="climb-L2-success" class="climb-btn-opt bg-green-900/20 border-green-900/50 text-green-500 hover:bg-green-900/40">Sucesso</button>
+                                </div>
+                                <div class="climb-level-row">
+                                    <div class="climb-lvl-label text-yellow-500">L3</div>
+                                    <button onclick="setEndgameClimb('L3', 'failed')" id="climb-L3-failed" class="climb-btn-opt bg-red-900/20 border-red-900/50 text-red-500 hover:bg-red-900/40 mr-2">Falhou</button>
+                                    <button onclick="setEndgameClimb('L3', 'success')" id="climb-L3-success" class="climb-btn-opt bg-green-900/20 border-green-900/50 text-green-500 hover:bg-green-900/40">Sucesso</button>
+                                </div>
+                            </div>
+                        </div>
+                        <hr class="border-slate-800">
+                        
+                        <!-- FUNÇÕES (ROLES) - SEMPRE VISÍVEIS -->
+                        <div>
+                            <h3 class="section-title title-pink"><i class="fas fa-user-tag mr-2"></i>Funções no EndGame</h3>
+                            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700 grid grid-cols-2 md:grid-cols-5 gap-2">
+                                <button onclick="toggleRole('endgame', 'scorer')" id="btn-role-endgame-scorer" class="role-btn">Pontuador</button>
+                                <button onclick="toggleRole('endgame', 'feeder')" id="btn-role-endgame-feeder" class="role-btn">Feeder</button>
+                                <button onclick="toggleRole('endgame', 'defense')" id="btn-role-endgame-defense" class="role-btn">Defensor</button>
+                                <button onclick="toggleRole('endgame', 'stealer')" id="btn-role-endgame-stealer" class="role-btn">Stealer</button>
+                                <button onclick="toggleRole('endgame', 'cycler')" id="btn-role-endgame-cycler" class="role-btn">Ciclador</button>
+                            </div>
+                        </div>
+
+                        <!-- TAB NAVIGATION -->
+                        <div class="flex rounded-lg bg-slate-900 p-1 mb-2">
+                            <button onclick="openSubTab('endgame', 'score')" id="btn-endgame-tab-score" class="sub-tab-btn active">Pontuação</button>
+                            <button onclick="openSubTab('endgame', 'intake')" id="btn-endgame-tab-intake" class="sub-tab-btn">Coleta</button>
+                            <button onclick="openSubTab('endgame', 'feed')" id="btn-endgame-tab-feed" class="sub-tab-btn">Feed</button>
+                        </div>
+
+                        <!-- TAB: PONTUAÇÃO -->
+                        <div id="endgame-content-score" class="flex flex-col gap-6">
+                            <div>
+                                <h3 class="section-title title-green"><i class="fas fa-basketball-ball mr-2"></i>Pontuação EndGame</h3>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex flex-col justify-center">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs text-slate-400 font-bold uppercase">Total Pontuado</span>
+                                        <div class="text-4xl font-mono font-bold text-green-400"><span id="display-endgame-scored">0</span></div>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2 mb-2">
+                                        <button onclick="updateEndgameScore(1)" class="counter-btn-pos bg-green-600 hover:bg-green-500">+1</button>
+                                        <button onclick="updateEndgameScore(5)" class="counter-btn-pos bg-green-700 hover:bg-green-600">+5</button>
+                                        <button onclick="updateEndgameScore(10)" class="counter-btn-pos bg-green-800 hover:bg-green-700">+10</button>
+                                    </div>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <button onclick="updateEndgameScore(-1)" class="counter-btn-neg">-1</button>
+                                        <button onclick="updateEndgameScore(-5)" class="counter-btn-neg">-5</button>
+                                        <button onclick="updateEndgameScore(-10)" class="counter-btn-neg">-10</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: COLETA -->
+                        <div id="endgame-content-intake" class="hidden flex-col gap-6">
+                            <div>
+                                <h3 class="section-title title-orange"><i class="fas fa-hand-holding mr-2"></i>Coleta (Intake)</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Nossa Zona</span><div class="mini-counter-display text-orange-400"><span id="endgame-intake-our">0</span></div></div>
+                                        <div class="flex gap-1"><button onclick="updateEndgameIntake('our', -1)" class="mini-btn-neg"><i class="fas fa-minus"></i></button><button onclick="updateEndgameIntake('our', 1)" class="mini-btn-pos bg-orange-700 hover:bg-orange-600">+1</button></div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Zona Neutra</span><div class="mini-counter-display text-orange-400"><span id="endgame-intake-neutral">0</span></div></div>
+                                        <div class="flex gap-1"><button onclick="updateEndgameIntake('neutral', -1)" class="mini-btn-neg"><i class="fas fa-minus"></i></button><button onclick="updateEndgameIntake('neutral', 1)" class="mini-btn-pos bg-orange-700 hover:bg-orange-600">+1</button></div>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">Zona Deles</span><div class="mini-counter-display text-orange-400"><span id="endgame-intake-opponent">0</span></div></div>
+                                        <div class="flex gap-1"><button onclick="updateEndgameIntake('opponent', -1)" class="mini-btn-neg"><i class="fas fa-minus"></i></button><button onclick="updateEndgameIntake('opponent', 1)" class="mini-btn-pos bg-orange-700 hover:bg-orange-600">+1</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: FEED -->
+                        <div id="endgame-content-feed" class="hidden flex-col gap-6">
+                            <div class="mb-8">
+                                <h3 class="section-title title-blue"><i class="fas fa-share mr-2"></i>Feed</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <!-- Feed Nossa Zona -->
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">De Nossa Zona</span><div class="mini-counter-display text-blue-400"><span id="endgame-feed-our">0</span></div></div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <button onclick="updateEndgameFeed('our', 1)" class="mini-btn-pos bg-blue-700">+1</button>
+                                            <button onclick="updateEndgameFeed('our', 5)" class="mini-btn-pos bg-blue-700">+5</button>
+                                            <button onclick="updateEndgameFeed('our', 10)" class="mini-btn-pos bg-blue-700">+10</button>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="updateEndgameFeed('our', -1)" class="mini-btn-neg">-1</button>
+                                            <button onclick="updateEndgameFeed('our', -5)" class="mini-btn-neg">-5</button>
+                                            <button onclick="updateEndgameFeed('our', -10)" class="mini-btn-neg">-10</button>
+                                        </div>
+                                    </div>
+                                    <!-- Feed Zona Neutra -->
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">De Zona Neutra</span><div class="mini-counter-display text-blue-400"><span id="endgame-feed-neutral">0</span></div></div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <button onclick="updateEndgameFeed('neutral', 1)" class="mini-btn-pos bg-blue-700">+1</button>
+                                            <button onclick="updateEndgameFeed('neutral', 5)" class="mini-btn-pos bg-blue-700">+5</button>
+                                            <button onclick="updateEndgameFeed('neutral', 10)" class="mini-btn-pos bg-blue-700">+10</button>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="updateEndgameFeed('neutral', -1)" class="mini-btn-neg">-1</button>
+                                            <button onclick="updateEndgameFeed('neutral', -5)" class="mini-btn-neg">-5</button>
+                                            <button onclick="updateEndgameFeed('neutral', -10)" class="mini-btn-neg">-10</button>
+                                        </div>
+                                    </div>
+                                    <!-- Feed Zona Deles -->
+                                    <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700">
+                                        <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">De Zona Deles</span><div class="mini-counter-display text-blue-400"><span id="endgame-feed-opponent">0</span></div></div>
+                                        <div class="grid grid-cols-3 gap-2 mb-2">
+                                            <button onclick="updateEndgameFeed('opponent', 1)" class="mini-btn-pos bg-blue-700">+1</button>
+                                            <button onclick="updateEndgameFeed('opponent', 5)" class="mini-btn-pos bg-blue-700">+5</button>
+                                            <button onclick="updateEndgameFeed('opponent', 10)" class="mini-btn-pos bg-blue-700">+10</button>
+                                        </div>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="updateEndgameFeed('opponent', -1)" class="mini-btn-neg">-1</button>
+                                            <button onclick="updateEndgameFeed('opponent', -5)" class="mini-btn-neg">-5</button>
+                                            <button onclick="updateEndgameFeed('opponent', -10)" class="mini-btn-neg">-10</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="section-title title-cyan"><i class="fas fa-user-friends mr-2"></i>Human Player</h3>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                                     <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-slate-400 uppercase">Alimentou HP</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <button onclick="updateEndgameHP(-1)" class="hp-btn bg-slate-700 text-slate-300 hover:text-white">-1</button>
+                                        <div class="text-2xl font-mono font-bold text-cyan-400 w-8 text-center"><span id="display-endgame-hp">0</span></div>
+                                        <button onclick="updateEndgameHP(1)" class="hp-btn bg-cyan-600 text-white hover:bg-cyan-500 shadow-lg shadow-cyan-900/30">+1</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- === OFF MATCH === -->
+                    <div id="phase-offmatch" class="phase-content hidden h-full flex flex-col gap-6">
+                        
+                        <!-- RPs e Faltas -->
+                        <div>
+                            <h3 class="section-title title-yellow"><i class="fas fa-trophy mr-2"></i>Resultados & RPs</h3>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="off-check-label">
+                                        <span class="text-sm font-bold text-yellow-500">Energized</span>
+                                        <input type="checkbox" id="check-energized" class="off-check-input" onchange="updateOffMatchCheck('energized')">
+                                    </label>
+                                    <label class="off-check-label">
+                                        <span class="text-sm font-bold text-orange-400">Supercharged</span>
+                                        <input type="checkbox" id="check-supercharged" class="off-check-input" onchange="updateOffMatchCheck('supercharged')">
+                                    </label>
+                                    <label class="off-check-label">
+                                        <span class="text-sm font-bold text-purple-400">Transversal</span>
+                                        <input type="checkbox" id="check-transversal" class="off-check-input" onchange="updateOffMatchCheck('transversal')">
+                                    </label>
+                                </div>
+                                <div class="bg-slate-900/50 rounded-lg p-3 border border-slate-700 flex flex-col items-center justify-center">
+                                    <span class="text-xs font-bold text-red-400 uppercase mb-2">Faltas (Fouls)</span>
+                                    <div class="flex items-center gap-4">
+                                        <button onclick="updateOffMatchFouls(-1)" class="w-10 h-10 rounded bg-slate-800 text-slate-400 hover:text-white font-bold text-xl">-</button>
+                                        <span id="display-off-fouls" class="text-3xl font-mono font-bold text-white">0</span>
+                                        <button onclick="updateOffMatchFouls(1)" class="w-10 h-10 rounded bg-red-900/50 text-red-400 hover:bg-red-800 hover:text-white font-bold text-xl">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status do Robô -->
+                        <div>
+                            <h3 class="section-title title-red"><i class="fas fa-cogs mr-2"></i>Status do Robô</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <label class="off-check-label bg-slate-800/50">
+                                    <span class="text-xs font-bold text-slate-300 uppercase">Sofreu Defesa?</span>
+                                    <input type="checkbox" id="check-suffered-defense" class="off-check-input" onchange="updateOffMatchCheck('sufferedDefense')">
+                                </label>
+                                <label class="off-check-label bg-slate-800/50">
+                                    <span class="text-xs font-bold text-red-400 uppercase">Quebrou/Parou?</span>
+                                    <input type="checkbox" id="check-broke" class="off-check-input border-red-500 text-red-600" onchange="updateOffMatchCheck('broke')">
+                                </label>
+                                <label class="off-check-label bg-slate-800/50">
+                                    <span class="text-xs font-bold text-yellow-200 uppercase">Falta de Robustez?</span>
+                                    <input type="checkbox" id="check-fragile" class="off-check-input border-yellow-500 text-yellow-500" onchange="updateOffMatchCheck('fragile')">
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="off-check-label bg-slate-800/50">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase">Passa Bump</span>
+                                        <input type="checkbox" id="check-cross-bump" class="off-check-input" onchange="updateOffMatchCheck('crossBump')">
+                                    </label>
+                                    <label class="off-check-label bg-slate-800/50">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase">Passa Trench</span>
+                                        <input type="checkbox" id="check-cross-trench" class="off-check-input" onchange="updateOffMatchCheck('crossTrench')">
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Habilidades -->
+                        <div>
+                            <h3 class="section-title title-cyan"><i class="fas fa-star mr-2"></i>Habilidades</h3>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-4">
+                                <div>
+                                    <div class="flex justify-between mb-1"><span class="text-xs font-bold text-slate-400 uppercase">Driver Skill</span><span id="lbl-driver-skill" class="text-xs font-bold text-cyan-400">---</span></div>
+                                    <div class="grid grid-cols-5 gap-2">
+                                        <button onclick="setOffMatchRate('driver', 1)" id="btn-driver-1" class="skill-btn">1</button>
+                                        <button onclick="setOffMatchRate('driver', 2)" id="btn-driver-2" class="skill-btn">2</button>
+                                        <button onclick="setOffMatchRate('driver', 3)" id="btn-driver-3" class="skill-btn">3</button>
+                                        <button onclick="setOffMatchRate('driver', 4)" id="btn-driver-4" class="skill-btn">4</button>
+                                        <button onclick="setOffMatchRate('driver', 5)" id="btn-driver-5" class="skill-btn">5</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1"><span class="text-xs font-bold text-slate-400 uppercase">Defensive Skill</span><span id="lbl-def-skill" class="text-xs font-bold text-purple-400">---</span></div>
+                                    <div class="grid grid-cols-5 gap-2">
+                                        <button onclick="setOffMatchRate('defense', 1)" id="btn-defense-1" class="skill-btn">1</button>
+                                        <button onclick="setOffMatchRate('defense', 2)" id="btn-defense-2" class="skill-btn">2</button>
+                                        <button onclick="setOffMatchRate('defense', 3)" id="btn-defense-3" class="skill-btn">3</button>
+                                        <button onclick="setOffMatchRate('defense', 4)" id="btn-defense-4" class="skill-btn">4</button>
+                                        <button onclick="setOffMatchRate('defense', 5)" id="btn-defense-5" class="skill-btn">5</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Precisão Shoot -->
+                        <div>
+                            <h3 class="section-title title-green"><i class="fas fa-crosshairs mr-2"></i>Precisão do Shoot</h3>
+                            <div class="bg-slate-800/50 p-1 rounded-xl border border-slate-700">
+                                <select id="select-accuracy" onchange="updateOffMatchAccuracy(this.value)" class="w-full bg-slate-900 text-white font-bold p-3 rounded-lg border-none outline-none text-sm">
+                                    <option value="">Selecione...</option>
+                                    <option value="Todos (>90%)">Todos (>90%)</option>
+                                    <option value="Maioria (75%)">Maioria (75%)</option>
+                                    <option value="Algumas (50%)">Algumas (50%)</option>
+                                    <option value="Poucas (25%)">Poucas (25%)</option>
+                                    <option value="Quase nada (<25%)">Quase nada (<25%)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Comentários -->
+                        <div>
+                            <h3 class="section-title title-blue"><i class="fas fa-comment-alt mr-2"></i>Comentários Gerais</h3>
+                            <textarea id="off-comments" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-4 text-white placeholder-slate-500 h-32 text-sm focus:border-indigo-500 outline-none transition" placeholder="Observações finais importantes..." onchange="updateOffMatchComments(this.value)"></textarea>
+                        </div>
+                    </div>
+                
+                </div>
+                 <!-- Added a spacer div at the end of the content area -->
+                <div class="h-48 w-full shrink-0"></div>
+            </div>
+
+            <!-- Botão Inferior Flutuante -->
+            <div class="absolute bottom-0 w-full bg-slate-900/90 backdrop-blur border-t border-slate-700 p-3 z-50">
+                <div class="max-w-md mx-auto">
+                    <button id="btn-next-phase" onclick="nextPhase()" class="w-full bg-purple-600 hover:bg-purple-500 active:bg-purple-700 text-white font-bold py-4 rounded-xl text-sm shadow-lg transition flex items-center justify-center gap-2">IR PARA TRANSITION <i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

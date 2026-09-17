@@ -1,0 +1,174 @@
+        /* --- ESTILOS GERAIS --- */
+        body { 
+            background-color: #020408; 
+            color: #e2e8f0; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            touch-action: manipulation;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #app-frame {
+            background-color: #0b0f19;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (min-width: 768px) {
+            #app-frame {
+                width: 100vw;
+                height: 100vh;
+                max-width: none; 
+                border-radius: 0; 
+                border: none;
+            }
+        }
+
+        /* --- NAVEGAÇÃO ENTRE PÁGINAS --- */
+        .page-container {
+            position: absolute; inset: 0; 
+            overflow-y: auto; overflow-x: hidden;
+            padding: 1rem;
+            display: flex; flex-direction: column; 
+            background-color: #0b0f19;
+            transition: opacity 0.2s ease-in-out;
+        }
+        
+        .hidden-page { opacity: 0; pointer-events: none !important; z-index: -10; display: none !important; }
+        .active-page { opacity: 1; pointer-events: auto !important; z-index: 10; display: flex !important; }
+
+        /* --- SIDEBAR --- */
+        .sidebar-open { transform: translateX(0) !important; }
+        .overlay-show { opacity: 1 !important; pointer-events: auto !important; }
+
+        /* Utilitários */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        .input-glow:focus { box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); border-color: #6366f1; }
+
+        /* --- BOTÕES E UI --- */
+        .station-btn {
+            @apply h-16 rounded-xl border-2 font-black text-lg flex flex-col items-center justify-center transition-all relative overflow-hidden cursor-pointer active:scale-95 touch-auto;
+        }
+        .btn-red { background-color: #3f0f15; border-color: #7f1d1d; color: #fca5a5; }
+        .btn-red.active { background-color: #dc2626; border-color: #ff4d4d; color: white; box-shadow: 0 0 15px rgba(220, 38, 38, 0.6); }
+        .btn-blue { background-color: #0c1836; border-color: #1e3a8a; color: #93c5fd; }
+        .btn-blue.active { background-color: #2563eb; border-color: #60a5fa; color: white; box-shadow: 0 0 15px rgba(37, 99, 235, 0.6); }
+
+        .match-type-card {
+            @apply flex flex-col items-center justify-center py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 transition-all cursor-pointer duration-200 relative;
+            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.05em;
+        }
+        .match-type-card.active {
+            @apply bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/40 transform -translate-y-1 ring-1 ring-indigo-300;
+        }
+
+        /* SCOUTING TABS */
+        .scout-nav { @apply flex w-full overflow-x-auto bg-slate-900 shadow-sm sticky top-[0px] z-40 border-b border-slate-800 h-12 md:h-14 items-center px-2; }
+        .phase-btn { 
+            @apply flex-shrink-0 px-4 py-2 text-center text-[10px] md:text-xs font-bold uppercase tracking-wider bg-slate-800 text-gray-500 border-b-2 border-transparent transition whitespace-nowrap cursor-pointer hover:bg-slate-700 h-full flex items-center; 
+        }
+        .phase-btn.active { @apply bg-slate-700 text-white border-indigo-500 shadow-[inset_0_-2px_0_0_#6366f1]; }
+
+        /* MAPA */
+        .field-map-container {
+            @apply relative w-full h-48 md:h-64 bg-slate-800 rounded-lg overflow-hidden border border-slate-700 shadow-md mb-2; 
+        }
+        .start-pos-btn {
+            @apply absolute w-8 h-8 md:w-10 md:h-10 -ml-4 -mt-4 rounded-full border border-white/50 bg-slate-900/80 text-white font-bold text-[8px] md:text-[10px] flex items-center justify-center shadow backdrop-blur-sm transition-all z-10 cursor-pointer hover:bg-slate-700;
+        }
+        .start-pos-btn.active {
+            @apply bg-green-500 border-white scale-110 shadow-[0_0_15px_rgba(34,197,94,0.6)];
+        }
+
+        /* BOTÕES DE CONTAGEM PADRONIZADOS */
+        .counter-btn-pos { @apply rounded py-3 font-bold text-[10px] md:text-xs text-white transition active:scale-95 shadow-md flex items-center justify-center w-full; }
+        .counter-btn-neg { @apply bg-red-900/40 hover:bg-red-900/60 text-red-400 border border-red-900/50 rounded py-3 font-bold text-[10px] md:text-xs active:scale-95 transition flex items-center justify-center w-full; }
+        
+        .counter-display { @apply flex items-center justify-center bg-slate-900 rounded-lg p-3 border border-slate-700 mb-3 text-4xl font-mono font-bold; }
+        
+        /* Mini Display para zonas */
+        .mini-counter-display { @apply flex items-center justify-center bg-slate-900 rounded p-2 border border-slate-700 w-12 text-lg font-mono font-bold text-white; }
+        .mini-btn-pos { @apply rounded px-3 py-2 font-bold text-[10px] text-white transition active:scale-95 shadow-md flex items-center justify-center w-full; }
+        .mini-btn-neg { @apply bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/30 rounded px-2 py-2 font-bold text-[10px] active:scale-95 transition flex items-center justify-center w-full; }
+        
+        /* Compact buttons for HP */
+        .hp-btn { @apply w-12 h-10 rounded-lg font-bold flex items-center justify-center transition active:scale-95 shadow; }
+
+        /* HUB STATUS CARDS */
+        .hub-status-card { @apply p-4 rounded-xl border-2 flex items-center justify-center gap-3 transition-all cursor-pointer shadow-lg; }
+        .hub-active { @apply bg-green-900/40 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]; }
+        .hub-inactive { @apply bg-slate-800 border-slate-600 text-slate-500 grayscale opacity-70; }
+        .hub-banner { @apply w-full py-2 mb-4 rounded-lg font-bold text-center text-xs uppercase tracking-widest border; }
+        .banner-active { @apply bg-green-900/80 border-green-500 text-green-300; }
+        .banner-inactive { @apply bg-slate-800/80 border-slate-600 text-slate-500; }
+
+        /* CLIMB CARDS */
+        .climb-level-row { @apply flex items-center gap-2 mb-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800; }
+        .climb-lvl-label { @apply font-black text-xl text-slate-500 w-12 text-center; }
+        .climb-btn-opt { @apply flex-1 py-3 rounded-lg font-bold text-xs uppercase tracking-wide border transition-all; }
+        
+        /* OFF MATCH COMPONENTS */
+        .off-check-label { @apply flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-700 transition; }
+        .off-check-input { @apply w-5 h-5 rounded border-slate-500 text-indigo-600 focus:ring-0 bg-slate-900; }
+        .skill-btn { @apply w-full py-2 rounded-lg border border-slate-600 bg-slate-900 text-slate-400 font-bold transition hover:bg-slate-800; }
+        .skill-btn.active { @apply bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/30; }
+        
+        /* NOVOS ESTILOS PARA ROLE BUTTONS */
+        .role-btn { @apply p-3 rounded-lg border border-slate-600 bg-slate-900 text-slate-400 font-bold text-[10px] md:text-xs uppercase transition cursor-pointer hover:bg-slate-800; }
+        .role-btn.active { @apply bg-pink-600 border-pink-400 text-white shadow-lg shadow-pink-500/30; }
+
+        /* Section Header */
+        .section-title { @apply text-xs font-bold uppercase tracking-widest mb-3 border-l-4 pl-2; }
+        .title-green { @apply text-green-400 border-green-500; }
+        .title-blue { @apply text-blue-400 border-blue-500; }
+        .title-orange { @apply text-orange-400 border-orange-500; }
+        .title-purple { @apply text-purple-400 border-purple-500; }
+        .title-yellow { @apply text-yellow-400 border-yellow-500; }
+        .title-red { @apply text-red-400 border-red-500; }
+        .title-cyan { @apply text-cyan-400 border-cyan-500; }
+        .title-pink { @apply text-pink-400 border-pink-500; }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .toast-notification {
+            @apply fixed top-4 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-slate-700 text-white px-6 py-4 rounded-xl shadow-2xl z-[100] flex items-center gap-4 transition-all duration-300;
+            opacity: 0; pointer-events: none; translate: 0 -20px;
+        }
+        .toast-show { opacity: 1; pointer-events: auto; translate: 0 0; }
+        
+        /* CONTAINER FLUIDO PARA PC */
+        .scout-max-width {
+            @apply max-w-7xl mx-auto w-full;
+        }
+
+        /* Abas Sub-Nav */
+        .sub-tab-btn {
+            @apply flex-1 py-3 text-[10px] md:text-xs font-bold uppercase tracking-wider border border-slate-700 bg-slate-800 text-slate-400 transition first:rounded-l-lg last:rounded-r-lg hover:bg-slate-700 cursor-pointer;
+        }
+        .sub-tab-btn.active {
+            @apply bg-indigo-600 text-white border-indigo-500 shadow-lg z-10;
+        }
+
+        /* Data List Styles */
+        .data-item {
+            @apply flex items-center justify-between p-4 bg-slate-900 border border-slate-800 rounded-xl mb-3 transition hover:border-slate-600;
+        }
+        .status-sent { @apply text-green-500; }
+        .status-pending { @apply text-yellow-500; }
+    </style>
