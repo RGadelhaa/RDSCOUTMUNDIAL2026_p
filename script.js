@@ -1179,5 +1179,3 @@
             if(successCount > 0) showToast("Sucesso", `${successCount} partidas enviadas!`);
             else showToast("Erro", "Falha ao conectar com a planilha.", "error");
         }
-
-    </script>
